@@ -101,13 +101,9 @@ public:
         }
 
         std::string  keyString = (this->genKey(keySeed));
-        //std::cout << "keyString: "<< keyString << "\n" << "keyString size: " << keyString.size() << "\n" << "keyString c string: " << keyString.c_str() << "\n";
         char *keyBuffer = (char*)(malloc(sizeof(*keyBuffer)*keyString.size()));
         memcpy(keyBuffer, keyString.c_str(), keyString.size());
-        //std::cout << "keyBuffer: " << keyBuffer << "\n";
         char *buffer = (char*)malloc(sizeof(*buffer)*this->keyBufSize);
-        //char *tailBuff;
-        //char *tailCryptBuff;
         char *cryptBuffer = (char*)malloc(sizeof(*cryptBuffer)*this->keyBufSize);
         size_t fileSize, currentPos, tail;
         ui rep;
@@ -119,27 +115,19 @@ public:
         outputFile.seekp(0, std::ios::beg);
 
         rep = (this->keyBufSize < fileSize)  ? fileSize/this->keyBufSize : this->keyBufSize/fileSize;
+        tail = (rep*fileSize)%this->keyBufSize;
 
-        tail = (this->keyBufSize < fileSize) ? fileSize%rep*this->keyBufSize :  this->keyBufSize%rep*fileSize;
-
-
-        if(keyBufSize < fileSize) {
-            for (si i = 0; i < rep && !inputFile.eof() && currentPos < fileSize; i++) {
-                //currentPos = inputFile.tellg();
+        if(keyBufSize <= fileSize) {
+            for (si i = 0; i < rep && inputFile.good(); i++) {
                 inputFile.read(buffer, this->keyBufSize);
-                //cryptBuffer = this->char_prt_xor_256_bytes(buffer, keyBuffer, this->keyBufSize);
-                //cryptBuffer = keyBuffer;
-                //outputFile.seekp(currentPos, std::ios::beg);
-                outputFile.write(this->char_prt_xor_256_bytes(buffer, keyBuffer, this->keyBufSize), this->keyBufSize);
-                //inputFile.seekg(currentPos+this->keyBufSize, std::ios::beg);
+                cryptBuffer = this->char_prt_xor_256_bytes(buffer, keyBuffer, this->keyBufSize);
+                outputFile.write(cryptBuffer, this->keyBufSize);
             }
         }
 
-        //ToDo need to input part of the XOR
         if(tail != 0) {
             inputFile.read(buffer, tail);
-            //cryptBuffer = this->char_prt_xor_256_bytes(buffer, keyBuffer, tail);
-            std::cout << "crypt buff: " << cryptBuffer << "\n";
+            std::cout << buffer;
             outputFile.write(this->char_prt_xor_256_bytes(buffer, keyBuffer, tail), tail);
         }
 
@@ -167,45 +155,31 @@ public:
         }
 
         std::string  keyString = (this->genKey(keySeed));
-        //std::cout << "keyString: "<< keyString << "\n" << "keyString size: " << keyString.size() << "\n" << "keyString c string: " << keyString.c_str() << "\n";
         char *keyBuffer = (char*)(malloc(sizeof(*keyBuffer)*keyString.size()));
         memcpy(keyBuffer, keyString.c_str(), keyString.size());
-        //std::cout << "keyBuffer: " << keyBuffer << "\n";
         char *buffer = (char*)malloc(sizeof(*buffer)*this->keyBufSize);
-        //char *tailBuff;
-        //char *tailCryptBuff;
-        char *cryptBuffer = (char*)malloc(sizeof(*cryptBuffer)*this->keyBufSize);
         size_t fileSize, currentPos, tail;
         ui rep;
 
         inputFile.seekg(0, std::ios::end);
         fileSize = inputFile.tellg();
         inputFile.seekg(0, std::ios::beg);
-
         outputFile.seekp(0, std::ios::beg);
 
         rep = (this->keyBufSize < fileSize)  ? fileSize/this->keyBufSize : this->keyBufSize/fileSize;
-
-        tail = (this->keyBufSize < fileSize) ? fileSize%rep*this->keyBufSize :  this->keyBufSize%rep*fileSize;
+        tail = (rep*fileSize)%this->keyBufSize;
 
 
         if(keyBufSize < fileSize) {
-            for (si i = 0; i < rep && !inputFile.eof() && currentPos < fileSize; i++) {
-                //currentPos = inputFile.tellg();
+            for (si i = 0; i < rep && inputFile.good(); i++) {
                 inputFile.read(buffer, this->keyBufSize);
-                //cryptBuffer = this->char_prt_xor_256_bytes(buffer, keyBuffer, this->keyBufSize);
-                //cryptBuffer = keyBuffer;
-                //outputFile.seekp(currentPos, std::ios::beg);
                 outputFile.write(this->char_prt_xor_256_bytes(keyBuffer, buffer, this->keyBufSize), this->keyBufSize);
-                //inputFile.seekg(currentPos+this->keyBufSize, std::ios::beg);
             }
         }
 
         //ToDo need to input part of the XOR
         if(tail != 0) {
             inputFile.read(buffer, tail);
-            //cryptBuffer = this->char_prt_xor_256_bytes(buffer, keyBuffer, tail);
-            std::cout << "crypt buff: " << cryptBuffer << "\n";
             outputFile.write(this->char_prt_xor_256_bytes(keyBuffer, buffer, tail), tail);
         }
 
@@ -224,21 +198,22 @@ public:
 
         size_t seedSize= keySeed.size();
 
-        ui rep = this->keyBufSize / seedSize;
-        size_t tail = this->keyBufSize%(seedSize*rep);
+        if(seedSize > this->keyBufSize){
+            std::cout << "password needs to be shorter then 256 bytes\n";
+            return "";
+        }
+
+        ui rep = this->keyBufSize/seedSize;
+        size_t tail = this->keyBufSize-seedSize*rep;
 
         for(si i=0; i < rep; i++) {
             std::memcpy(key+(seedSize*i), keySeed_c_str, seedSize);
         }
-
         if(tail != 0){
             std::memcpy(key+(rep*seedSize), keySeed_c_str, tail);
         }
 
-        //std::cout << "Key seed: " <<keySeed << ", key c string : " << keySeed_c_str << ", key : " << key << "\n";
-
         std::string stringKey(key);
-
         delete[] key;
 
         return stringKey;
@@ -247,49 +222,48 @@ public:
     //Can't use int for this. The size of a int changes from 64bit to 32bit systems. 32bits to 16bits respectively.
     char *char_prt_xor_256_bytes(char *lhs, char *rhs, size_t charSize){
         u64 lhsu64 = 0, rhsu64 = 0, outu64=0;
-        //Char is 1 byte so no converstion is needed for sizeof.
         char *outCharPoint = (char*)malloc(256);
-        char *xorCharPoint = (char*)malloc(256);
-        char *rhTempDeBug = (char*)malloc(sizeof (u64));
-        char *lhTempDeBug = (char*)malloc(sizeof(u64));
-        char *xorTempDeBug = (char *)malloc(sizeof(u64));
-        //Logic for the 32 is that a long long is 8 bytes and 256/4 is 32.
-        std::cout << "output xorbuffer: \n";
         for(int i=0;i<(256/sizeof(u64)); i++){
-            memcpy(&lhsu64, lhs+i*sizeof(u64), sizeof(u64));
-            memcpy(lhTempDeBug, lhs+i*sizeof(u64), sizeof(u64));
-            //lhsu64 = *reinterpret_cast<unsigned long long int *>(xorCharPoint);
-            memcpy(&rhsu64, rhs+i*sizeof(u64), sizeof(u64));
-            memcpy(rhTempDeBug, rhs+i*sizeof(u64), sizeof(u64));
-            //rhsu64 = *reinterpret_cast<unsigned long long int *>(xorCharPoint);
-            outu64 = lhsu64 ^ rhsu64;
-            xorCharPoint = (reinterpret_cast<char *>(&outu64));
+            outu64 = *reinterpret_cast<unsigned long long int *>(rhs+i*sizeof(u64)) ^ *reinterpret_cast<unsigned long long int *>(lhs+i*sizeof(u64));
             memcpy(outCharPoint+sizeof(u64)*i, (reinterpret_cast<char *>(&outu64)), sizeof(u64));
-            //memcpy(xorTempDeBug, &outu64, sizeof(u64));
-            memcpy(outCharPoint+sizeof(u64)*i, xorCharPoint, sizeof(u64));
-            std::cout << "temp buff: " << xorCharPoint << "\n"  << "temp long: " << xorTempDeBug << "\n" << "Full buff: " << outCharPoint << "\n" <<
-                      "location: " << outCharPoint+(sizeof(u64)*i) << "\n";
+            //std::cout <<  "Full buff: " << outCharPoint << "\n" <<
+            //         "location: " << outCharPoint+(sizeof(u64)*i) << "\n";
         }
 
-        std::cout << "End xorbuffer\n";
-            std::string charPointWrap(outCharPoint);
-            std::cout << "output stream: " << charPointWrap << "\n";
-
-            std::cout << "full: " << outCharPoint << "\n";
-            if(charSize < 256) {
-                char * truncReturn = (char *)malloc(256);
+        //std::cout << "End xorbuffer\n";
+            //std::string charPointWrap(outCharPoint);
+            //std::cout << "output stream: " << charPointWrap << "\n";
+            /*if(charSize < 256) {
+                char * truncReturn = (char *)malloc(charSize);
                 memcpy(truncReturn, outCharPoint, charSize);
-                std::cout << "truc: " << truncReturn << "\n";
                 delete[] outCharPoint;
-                //delete[] truncReturn;
-                //delete[] xorCharPoint;
                 return truncReturn;
-            }
-            char* outPut = strdup(outCharPoint);
+            }*/
+        char* outPut = (char *)malloc(charSize);
+        memcpy(outPut, outCharPoint, charSize);
         delete[] outCharPoint;
-        delete[] xorCharPoint;
         return outPut;
     }
+
+    si vaildater(std::filesystem::path og, std::filesystem::path dr);
+
+    si cat(std::filesystem::path readPath){
+        std::ifstream outStream(readPath.string(), std::ios::out);
+
+        if(outStream.fail() || !outStream.is_open()){
+            std::cout << "Failed opening file for reading :" << readPath << "\n";
+        }
+
+        std::string readBuffer;
+
+        while(outStream.good()){
+            std::getline(outStream, readBuffer);
+            std::cout << readBuffer;
+        }
+
+        return 1;
+    }
+
 
 };
 #endif //HOMEWORK6_COMMANDS_H

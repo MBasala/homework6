@@ -63,9 +63,9 @@ private:
                     std::cout << "Enter password.\n";
                     //std::cin >> this->password;
                     std::cout << "\n";
-                    args = "/home/fly0ut/Desktop/testing";
-                    args2 = "/home/fly0ut/Desktop/testing2";
-                    password = "testing123";
+                    args = "/home/fly0ut/Desktop/testingBig";
+                    args2 = "/home/fly0ut/Desktop/testingBig2";
+                    password = "d2d032-i90efw09ufa";
                     this->shellFuncs.xorCrypt(args, args2, password);
                     break;
                 case 7:
@@ -78,11 +78,15 @@ private:
                     std::cout << "Enter password.\n";
                     //std::cin >> this->password;
                     std::cout << "\n";
-                    args = "/home/fly0ut/Desktop/testing2";
-                    args2 = "/home/fly0ut/Desktop/testingDe";
-                    password = "testing123";
+                    args = "/home/fly0ut/Desktop/testingBig2";
+                    args2 = "/home/fly0ut/Desktop/testingBigDe";
+                    password = "d2d032-i90efw09ufa";
                     this->shellFuncs.xorDecrypt(args, args2, password);
                     break;
+                case 1337:
+                    std::cout << "Running demo\n";
+                    this->demoHomework6();
+                    std::cout << "Demo done\n";
                 default:
                     std::cout << "Error, not a valid command\n";
             }
@@ -90,6 +94,30 @@ private:
             args2.empty();
             password.empty();
         }
+        return 0;
+    }
+
+    si demoHomework6(){
+
+        args = "/home/fly0ut/Desktop/testing";
+        args2 = "/home/fly0ut/Desktop/testing2";
+        password = "4v5525";
+        this->shellFuncs.xorCrypt(args, args2, password);
+
+        args = "/home/fly0ut/Desktop/testing2";
+        args2 = "/home/fly0ut/Desktop/testingDe";
+        password = "4v5525";
+        this->shellFuncs.xorDecrypt(args, args2, password);
+
+        args = "/home/fly0ut/Desktop/testingBig";
+        args2 = "/home/fly0ut/Desktop/testingBig2";
+        password = "d2d032-i90efw09ufa";
+        this->shellFuncs.xorCrypt(args, args2, password);
+
+        args = "/home/fly0ut/Desktop/testingBig2";
+        args2 = "/home/fly0ut/Desktop/testingBigDe";
+        password = "d2d032-i90efw09ufa";
+        this->shellFuncs.xorDecrypt(args, args2, password);
         return 0;
     }
 
